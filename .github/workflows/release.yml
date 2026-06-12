@@ -1,20 +1,85 @@
-name: Test Pipeline
+name: Automated Artifact Versioning
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
+
+
+permissions:
+  contents: write
+
 
 jobs:
-  test:
+
+  build-release:
+
     runs-on: ubuntu-latest
 
+
     steps:
+
 
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Check files
+
+
+    - name: Get Version
+
+      id: version
+
       run: |
-        ls
-        echo "GitHub Actions working "
+
+        echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+
+
+    - name: Build Docker Image
+
+      run: |
+
+        docker build \
+        -t artifact-versioning:${{ steps.version.outputs.VERSION }} \
+        -t artifact-versioning:${GITHUB_SHA} .
+
+
+
+    - name: Save Docker Image
+
+      run: |
+
+        docker save artifact-versioning:${{ steps.version.outputs.VERSION }} \
+        -o artifact-versioning.tar
+
+
+
+    - name: Upload Docker Artifact
+
+      uses: actions/upload-artifact@v4
+
+      with:
+
+        name: docker-image
+
+        path: artifact-versioning.tar
+
+
+
+    - name: Create Changelog
+
+      run: |
+
+        echo "Release ${{ steps.version.outputs.VERSION }}" > CHANGELOG.md
+
+        git log --oneline -10 >> CHANGELOG.md
+
+
+
+    - name: Create GitHub Release
+
+      uses: softprops/action-gh-release@v2
+
+      with:
+
+        body_path: CHANGELOG.md

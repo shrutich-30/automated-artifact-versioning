@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Artifact Versioning Pipeline Running 🚀"
+    return "New Artifact Version Pipeline 🚀"
 
 
 if __name__ == "__main__":
